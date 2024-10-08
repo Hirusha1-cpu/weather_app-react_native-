@@ -1,117 +1,129 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
+  ActivityIndicator,
+  ImageBackground,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const API_KEY = '49624f40b0fc419b96862405240810';
+const CITY = 'colombo';
+const {width, height} = Dimensions.get('window');
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+interface WeatherData {
+  current: {
+    temp_c: number;
+    humidity: number;
+    feelslike_c: number;
+  };
+  location: {
+    name: string;
+  };
 }
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  useEffect(() => {
+    fetchWeatherData();
+  }, []);
+
+  const fetchWeatherData = async () => {
+    try {
+      const response = await fetch(
+        `http://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${CITY}&aqi=no`,
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setWeatherData(data);
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError('Failed to fetch weather data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <SafeAreaView style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" />
+      <ImageBackground
+        source={require('./assets/1.jpg')} // Update this to your image path
+        style={styles.backgroundImage}
+        resizeMode="cover">
+        <View style={styles.overlay}>
+          {loading ? (
+            <ActivityIndicator size="large" color="white" />
+          ) : error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : (
+            weatherData && (
+              <View style={styles.weatherContainer}>
+                <Text style={styles.cityName}>{weatherData.location.name}</Text>
+                <Text style={styles.temperature}>
+                  {Math.round(weatherData.current.temp_c)}°C
+                </Text>
+                <Text style={styles.weatherInfo}>
+                  Feels likess: {Math.round(weatherData.current.feelslike_c)}°C
+                </Text>
+                <Text style={styles.weatherInfo}>
+                  Humidity: {weatherData.current.humidity}%
+                </Text>
+              </View>
+            )
+          )}
         </View>
-      </ScrollView>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
   },
-  sectionTitle: {
+  backgroundImage: {
+    flex: 1,
+    width: width,
+    height: height,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  weatherContainer: {
+    alignItems: 'center',
+  },
+  cityName: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 10,
+  },
+  temperature: {
+    fontSize: 80,
+    fontWeight: '200',
+    color: 'white',
+  },
+  weatherInfo: {
     fontSize: 24,
-    fontWeight: '600',
+    color: 'white',
+    marginTop: 10,
   },
-  sectionDescription: {
-    marginTop: 8,
+  errorText: {
+    color: 'white',
     fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+    textAlign: 'center',
   },
 });
 
